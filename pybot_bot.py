@@ -7,7 +7,7 @@ INFINITY = MAXSCORE*100
 MAXPLAYER = 2
 MAXHOLES = 6
 DEFAULTSTONES = 4
-MAX_DEPTH = 4
+MAX_DEPTH = 9
 
 HoleToMove = [{0:6, 1:5, 2:4, 3:3, 4:2, 5:1}, {0:1, 1:2, 2:3, 3:4, 4:5, 5:6}]
 MoveToHole = [{6:0, 5:1, 4:2, 3:3, 2:4, 1:5}, {1:0, 2:1, 3:2, 4:3, 5:4, 6:5}]
@@ -180,6 +180,67 @@ def minimax(board, depth, maximizingPlayer):
                 bestvalue = v
                 bestmove = move
         return (bestvalue, bestmove)
+        
+'''
+01 function alphabeta(node, depth, α, β, maximizingPlayer)
+02      if depth = 0 or node is a terminal node
+03          return the heuristic value of node
+04      if maximizingPlayer
+05          v := -∞
+06          for each child of node
+07              v := max(v, alphabeta(child, depth - 1, α, β, FALSE))
+08              α := max(α, v)
+09              if β ≤ α
+10                  break (* β cut-off *)
+11          return v
+12      else
+13          v := ∞
+14          for each child of node
+15              v := min(v, alphabeta(child, depth - 1, α, β, TRUE))
+16              β := min(β, v)
+17              if β ≤ α
+18                  break (* α cut-off *)
+19          return v
+'''        
+def alphabeta(board, depth, a, b, maximizingPlayer):
+    bestvalue = 0
+    bestmove = -1    
+    if depth == 0 or board.over == True:        
+        return (getHeuristicValue(board, maximizingPlayer), bestmove)    
+    if maximizingPlayer:
+        bestvalue = -INFINITY
+        moves = board.getPossibleMoves(board.owner)
+        if len(moves) == 0:
+            return (getHeuristicValue(board, maximizingPlayer), bestmove)
+        for move in moves:            
+            newboard = Board(0, board)
+            bonus = newboard.playOwnMove(move)
+            v, m = alphabeta(newboard, depth -1, a, b, bonus)
+            if v >= bestvalue:
+                bestvalue = v
+                bestmove = move
+            a = max(a, v)
+            if b <= a:
+                break  # Beta cut-off
+        return (bestvalue, bestmove)
+    else:  #minimizing player
+        bestvalue = INFINITY
+        moves = board.getPossibleMoves(board.opponent)
+        if len(moves) == 0:
+            return (getHeuristicValue(board, maximizingPlayer), bestmove)
+        for move in moves:
+            newboard = Board(0, board) #Allocate a new board for each branching
+            bonus = newboard.playOpponentMove(move)
+            v, m = alphabeta(newboard, depth -1, a, b, (not bonus))
+            if v <= bestvalue:
+                bestvalue = v
+                bestmove = move
+            b = min(b, v)
+            if b <= a:
+                break #alpha cut-off
+        return (bestvalue, bestmove)
+    
+        
 
 def update_opponent_move(board, move):
     board.playOpponentMove(move)
@@ -189,7 +250,8 @@ def update_opponent_move(board, move):
 
 def get_next_move(board):        
     #nextmove = random.choice(board.getPossibleMoves(board.owner))
-    v, nextmove = minimax(board, MAX_DEPTH, True)
+    #v, nextmove = minimax(board, MAX_DEPTH, True)
+    v, nextmove = alphabeta(board, MAX_DEPTH, -INFINITY, INFINITY, True)
     logMsg("\nPlaying Move: " + str(nextmove))
     board.playOwnMove(nextmove)
     board.display()    
